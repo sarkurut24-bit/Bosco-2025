@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BoscoConnect 2025</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #0f0c29; margin: 0; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(247, 37, 133, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const DEFAULT_GROUPS = [
+            { id: 'grp-db-2025', name: 'CL 10 batch-2025 Don Bosco', emoji: '🏫', color: 'from-blue-600 to-indigo-600' }
+        ];
+
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [showLoginForm, setShowLoginForm] = useState(true);
+            const [groups, setGroups] = useState(DEFAULT_GROUPS);
+            const [selectedGroup, setSelectedGroup] = useState(DEFAULT_GROUPS[0]);
+            const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+            const [newGroupName, setNewGroupName] = useState('');
+            const [messages, setMessages] = useState({});
+            const [messageText, setMessageText] = useState('');
+            const [loginName, setLoginName] = useState('');
+            const messagesEndRef = useRef(null);
+
+            useEffect(() => {
+                const savedGroups = localStorage.getItem('dbapp:customGroups');
+                if (savedGroups) setGroups([...DEFAULT_GROUPS, ...JSON.parse(savedGroups)]);
+                const savedMsgs = localStorage.getItem('dbapp:messages');
+                if (savedMsgs) setMessages(JSON.parse(savedMsgs));
+            }, []);
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, selectedGroup]);
+
+            const handleLogin = () => {
+                if (!loginName.trim()) return alert('Bhai, naam toh likho!');
+                setCurrentUser({ id: Date.now(), name: loginName });
+                setShowLoginForm(false);
+            };
+
+            const handleCreateGroup = () => {
+                if (!newGroupName.trim()) return;
+                const newGroup = { id: `grp_${Date.now()}`, name: newGroupName, emoji: '👥', color: 'from-purple-500 to-pink-500' };
+                const updated = [...groups, newGroup];
+                setGroups(updated);
+                localStorage.setItem('dbapp:customGroups', JSON.stringify(updated.filter(g => g.id !== 'grp-db-2025')));
+                setNewGroupName(''); setShowNewGroupModal(false);
+            };
+
+            const handleSendMessage = () => {
+                if (!messageText.trim()) return;
+                const key = `grp_${selectedGroup.id}`;
+                const newMsg = { 
+                    id: Date.now(), 
+                    sender: currentUser.name, 
+                    text: messageText, 
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                };
+                const updatedMsgs = { ...messages, [key]: [...(messages[key] || []), newMsg] };
+                setMessages(updatedMsgs);
+                localStorage.setItem('dbapp:messages', JSON.stringify(updatedMsgs));
+                setMessageText('');
+            };
+
+            if (showLoginForm) return (
+                <div className="h-screen flex items-center justify-center p-6 text-white bg-[#0f0c29]">
+                    <div className="w-full max-w-sm text-center glass p-10 rounded-[40px] shadow-2xl">
+                        <div className="text-6xl mb-6 animate-bounce">🏫</div>
+                        <h1 className="text-3xl font-black mb-2">BoscoConnect</h1>
+                        <p className="text-gray-400 text-sm mb-8">Batch of 2025 Hub</p>
+                        <input type="text" placeholder="Enter Your Name" className="w-full p-4 bg-white/10 rounded-2xl mb-4 outline-none border border-white/10 focus:border-pink-500 transition-all text-center" onChange={e => setLoginName(e.target.value)} />
+                        <button onClick={handleLogin} className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-pink-500/25">Join Now 🚀</button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="h-screen flex flex-col text-white bg-[#0f0c29]">
+                    {/* Top Header */}
+                    <div className="p-4 flex justify-between items-center glass border-b border-white/10">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30">🏫</div>
+                            <h1 className="font-black text-lg tracking-tight">DB Hub</h1>
+                        </div>
+                        <button onClick={() => setShowNewGroupModal(true)} className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-xl font-bold text-2xl hover:bg-pink-500 transition-colors">+</button>
+                    </div>
+
+                    <div className="flex flex-1 overflow-hidden">
+                        {/* Sidebar */}
+                        <div className="w-20 md:w-64 bg-black/20 border-r border-white/5 p-2 overflow-y-auto custom-scrollbar">
+                            {groups.map(g => (
+                                <button key={g.id} onClick={() => setSelectedGroup(g)} className={`w-full p-3 mb-2 rounded-2xl flex items-center gap-3 transition-all ${selectedGroup.id === g.id ? 'bg-pink-500 shadow-lg shadow-pink-500/20' : 'hover:bg-white/5'}`}>
+                                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${g.color} flex items-center justify-center shrink-0 text-xl shadow-inner`}>{g.emoji}</div>
+                                    <span className="hidden md:block truncate font-bold text-sm">{g.name}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Chat Area */}
+                        <div className="flex-1 flex flex-col relative">
+                            <div className="p-3 bg-white/5 text-center text-[10px] font-black border-b border-white/5 text-pink-500 uppercase tracking-[0.2em]">
+                                {selectedGroup.name}
+                            </div>
+                            
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                {(messages[`grp_${selectedGroup.id}`] || []).map(m => (
+                                    <div key={m.id} className={`flex flex-col ${m.sender === currentUser.name ? 'items-end' : 'items-start'}`}>
+                                        <span className="text-[10px] opacity-40 mb-1 px-2">{m.sender === currentUser.name ? 'You' : m.sender}</span>
+                                        <div className={`p-4 rounded-[22px] max-w-[85%] text-sm shadow-sm ${m.sender === currentUser.name ? 'bg-gradient-to-tr from-pink-600 to-pink-500 rounded-tr-none' : 'bg-white/10 rounded-tl-none border border-white/5'}`}>
+                                            {m.text}
+                                            <div className="text-[9px] mt-1 opacity-50 text-right">{m.timestamp}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            {/* Input Area */}
+                            <div className="p-4 glass m-4 rounded-[25px] flex gap-2">
+                                <input value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSendMessage()} placeholder="Type something..." className="flex-1 bg-transparent p-2 outline-none text-sm" />
+                                <button onClick={handleSendMessage} className="bg-pink-500 px-5 py-2 rounded-xl font-bold text-xs hover:bg-pink-600 transition-all">SEND</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Create Group Modal */}
+                    {showNewGroupModal && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 z-50">
+                            <div className="glass p-8 rounded-[35px] w-full max-w-sm border border-white/20">
+                                <h2 className="text-xl font-black mb-6 text-center">New Group</h2>
+                                <input placeholder="Group Name..." className="w-full p-4 bg-white/10 rounded-2xl mb-4 outline-none border border-white/10 focus:border-pink-500" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+                                <div className="flex gap-3">
+                                    <button onClick={() => setShowNewGroupModal(false)} className="flex-1 p-4 bg-white/5 rounded-2xl font-bold text-sm">Cancel</button>
+                                    <button onClick={handleCreateGroup} className="flex-1 p-4 bg-pink-500 rounded-2xl font-bold text-sm">Create</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
